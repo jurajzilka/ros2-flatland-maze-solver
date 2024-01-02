@@ -1,0 +1,50 @@
+#SERP model with LiDAR
+
+bodies:
+
+  - name: base_link
+    enabled: true
+    pose: [0, 0, 0]
+    type: dynamic
+    color: [0, 0, 1, 0.75]
+    footprints:
+      - type: polygon
+        density: 1
+        layers: ["map"]
+        points: [ [-0.117, -0.055],
+                  [-0.022, -0.055],
+                  [-0.022, -0.085],
+                  [0.048, -0.085],
+                  [0.048, 0.085],
+                  [-0.022, 0.085],
+                  [-0.022, 0.055],
+                  [-0.117, 0.055] ]
+
+plugins:
+  - type: DiffDrive
+    name: serp_diff_drive
+    body: base_link
+    pub_rate: 10
+    twist_sub: cmd_vel
+    odom_frame_id: odom
+    odom_pub: odom  
+  
+  - type: ModelTfPublisher
+    name: tf_publisher
+    publish_tf_world: false
+
+  #lidar for DRL
+  - type: Laser
+    name: static_laser
+    frame: static_laser_link
+    topic: scan
+    body: base_link
+    broadcast_tf: true
+    origin: [0.0, 0.0, 0.0]
+    range: 20
+    # angle: {min: -3.14159265359, max: 3.14159265359, increment: 0.05235987755}
+    angle: {min: -3.14159265359, max: 3.14159265359, increment: 0.06981317007}
+    noise_std_dev: 0.015
+    update_rate: 10
+    layers: ["map"]
+  

@@ -1,0 +1,43 @@
+<launch>
+
+    <arg name="world_path" default="maze"/>
+    <arg name="update_rate" default="100.0"/>
+    <arg name="step_size" default="0.05"/>
+    <arg name="show_viz" default="true"/>
+    <arg name="viz_pub_rate" default="50.0"/>
+
+
+    <set_env name="ROSCONSOLE_FORMAT" value="[${severity} ${time} ${logger}]: ${message}" />
+    
+
+
+    <!-- launch flatland server -->
+    <node name="flatland_server" pkg="flatland_server" exec="flatland_server" output="screen">  
+        <!-- Use the arguments passed into the launchfile for this node -->
+        <param name="world_path" value="$(find-pkg-share flatland_quick_start_ros2)/flatland_worlds/$(var world_path)/world.yaml" />
+        <param name="update_rate" value="$(var update_rate)" />
+        <param name="step_size" value="$(var step_size)" />
+        <param name="show_viz" value="$(var show_viz)" />
+        <param name="viz_pub_rate" value="$(var viz_pub_rate)" />
+        <remap from="/static_laser" to="/scan"/>
+        
+    </node>
+
+
+    <include file="$(find-pkg-share flatland_quick_start_ros2)/launch/rviz.launch.xml">
+        <arg name="rviz_config" value="$(find-pkg-share flatland_quick_start_ros2)/flatland_worlds/maze/robot_navigation.rviz"/>
+    </include>
+
+    <!-- Load map -->
+    
+    <node pkg="nav2_map_server" exec="map_server" name="map_server" output="screen">
+        <param name="yaml_filename" value="$(find-pkg-share flatland_quick_start_ros2)/flatland_worlds/maze/scanned_map.yaml"/>
+
+    </node>
+
+    <!-- odom frame == map frame -->
+	<node pkg="tf2_ros" exec="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 map odom">
+	
+	</node>
+
+</launch>
