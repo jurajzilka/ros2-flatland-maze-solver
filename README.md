@@ -18,6 +18,8 @@ This project demonstrates a complete robot navigation pipeline where a robot is 
 
 Flatland is a lightweight 2D simulator ideal for fast robotics prototyping — no heavy 3D simulation overhead required.
 
+![](img/discovering_map.gif)
+
 **Key technologies used:**
 
 | Component | Tool |
@@ -171,6 +173,26 @@ LiDAR data → SLAM → Occupancy Map → Nav2 Localization → Path Planning �
 4. **Control** — Velocity commands (`/cmd_vel`) are published to move the robot safely
 
 This reflects a standard robotics pipeline used in real-world autonomous systems.
+
+###  TF Transform Tree
+
+The robot uses the following chain of coordinate frames:
+
+![TF Tree](img/tf_tree.png)
+
+| Frame | Description |
+|-------|-------------|
+| `map` | Global fixed frame — the saved occupancy map |
+| `odom` | Odometry frame — tracks robot movement over time |
+| `base_link` | Robot body center |
+| `static_laser_link` | LiDAR sensor frame |
+
+###  ROS 2 Node Graph
+
+Full graph of all active ROS 2 nodes and topics during navigation (generated via `rqt_graph`):
+
+![ROS 2 Node Graph](img/node_graph.png)
+
 
 ---
 
