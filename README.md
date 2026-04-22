@@ -1,131 +1,253 @@
-# ROS2 Flatland robot tutorial, using SLAM and NAV2
+# ROS 2 Flatland Maze Solver
 
-## Prerequisites
-Ensure that you have ROS2 Humble installed. If not, please follow the official guide.
+> Autonomous robot navigation pipeline using **SLAM**, **Nav2**, and the **Flatland 2D simulator** — built on ROS 2 Humble.
 
-## SLAM Toolbox and Nav2 Stack Setup
+![ROS 2](https://img.shields.io/badge/ROS_2-Humble-22314E?style=flat-square&logo=ros&logoColor=white)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?style=flat-square&logo=ubuntu&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10-3776AB?style=flat-square&logo=python&logoColor=white)
 
-### Updating .bashrc
+---
 
-1. Install the RMW Cyclone DDS implementation (in terminal):
-  ```
-  sudo apt install ros-humble-rmw-cyclonedds-cpp
-  ```
-2. After successful installation, open the `.bashrc` file:
-  ```
-  gedit .bashrc
-  ```
-3. Add the following line to `.bashrc` (around line 119):
-  ```
-  export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-  ```
-4. Save and close the file.
+## 📖 About
 
-### Nav2 Installation
-1. Install Nav2:
-  ```   
-  sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup`
-  ```
-### SLAM Toolbox Installation and Setup
-1. Install the SLAM Toolbox:
-  ```
-  sudo apt install ros-humble-slam-toolbox
-  ```
-2. Navigate to `/opt/ros/humble/share/slam_toolbox/config/mapper_params_online_async.yaml`.
-3. Change the parameters in the yaml file as follows:
-  ```
-  base_frame: base_link
-  use_scan_matching: false
-  use_scan_barycenter: false
-  ```
-4. Since the file is read-only, open it in the command line at `/opt/ros/humble/share/slam_toolbox/config` and change the parameters:
-  ```
-  sudo nano mapper_params_online_async.yaml
-  ```
-5. Save and close the file.
+This project demonstrates a complete robot navigation pipeline where a robot is placed in a **maze-like 2D environment** and must:
 
-## Workspace and Flatland Setup for First Run
+1. **Explore** the environment and build a map using SLAM
+2. **Localize** itself within the saved map
+3. **Navigate autonomously** to a goal using Nav2
 
-1. Open a terminal where you want your workspace folder.
-2. Clone the repository:
-  ```
-  git clone https://github.com/jurajzilka/ros2-flatland-maze-solver
-  ```
-3. Change directory to the cloned repository:
-  ```
-  cd ros2-flatland-maze-solver/
-  ```
-4. Build the workspace:
-  ```
-  colcon build
-  ```
-5. Source the setup file:
-  ```
-  source install/setup.bash
-  ```
-NOTE: You have to source the setup file everytime you open a new terminal!
+Flatland is a lightweight 2D simulator ideal for fast robotics prototyping — no heavy 3D simulation overhead required.
 
-## SLAM Mapping
+**Key technologies used:**
 
-1. We will launch the robot, SLAM Toolbox, and controller, then save the map.
+| Component | Tool |
+|-----------|------|
+| 🧠 SLAM | `slam_toolbox` |
+| 🗺️ Path Planning & Navigation | `Nav2` |
+| 🤖 Robot Simulation | `Flatland` |
+| 🎮 Robot Control | Custom Python node |
 
-- First terminal: 
-  ```
-  ros2 launch flatland_quick_start_ros2 flatland_rviz.launch.xml
-  ```
-- Second terminal: 
-  ```
-  ros2 launch nav2_bringup navigation_launch.py
-  ```
-- Third terminal: 
-  ```
-  ros2 launch slam_toolbox online_async_launch.py
-  ```
-- Fourth terminal: 
-  ```
-  ros2 run flatland_quick_start_ros2 custom_robot_controller.py
+---
+
+## 📁 Project Structure
+
+```
+ros2-flatland-maze-solver/
+├── flatland_quick_start_ros2/
+│   ├── launch/              # Launch files for simulation
+│   ├── scripts/             # Custom robot controller node
+│   └── flatland_worlds/     # Maze environment definitions
+├── install/                 # Colcon install space
+├── build/                   # Colcon build space
+└── log/                     # Build & runtime logs
+```
+
+---
+
+##  Requirements
+
+- **OS:** Ubuntu 22.04
+- **ROS:** ROS 2 Humble
+- **Build tool:** colcon
+
+### Install ROS 2 dependencies
+
+```bash
+sudo apt install \
+  ros-humble-navigation2 \
+  ros-humble-nav2-bringup \
+  ros-humble-slam-toolbox \
+  ros-humble-rmw-cyclonedds-cpp
+```
+
+---
+
+##  Environment Setup
+
+### Configure Cyclone DDS (recommended for Nav2)
+
+```bash
+echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.bashrc
+source ~/.bashrc
+```
+
+---
+
+##  Build & Install
+
+```bash
+git clone https://github.com/jurajzilka/ros2-flatland-maze-solver.git
+cd ros2-flatland-maze-solver
+
+colcon build
+source install/setup.bash
+```
+
+> ⚠️ **Note:** Run `source install/setup.bash` in **every new terminal** before using any ROS 2 commands from this workspace.
+
+---
+
+##  Phase 1 — SLAM Mapping
+
+Open **4 separate terminals** and run each command in order:
+
+**Terminal 1 — Simulation**
+```bash
+ros2 launch flatland_quick_start_ros2 flatland_rviz.launch.xml
+```
+
+**Terminal 2 — Navigation stack**
+```bash
+ros2 launch nav2_bringup navigation_launch.py
+```
+
+**Terminal 3 — SLAM**
+```bash
+ros2 launch slam_toolbox online_async_launch.py
+```
+
+**Terminal 4 — Robot controller**
+```bash
+ros2 run flatland_quick_start_ros2 custom_robot_controller.py
+```
+
+Drive the robot around to scan the maze. Once done, save the map.
+
+###  Save the Map
+
+```bash
+ros2 run nav2_map_server map_saver_cli \
+  -f src/flatland_quick_start_ros2/flatland_worlds/maze/scanned_map
+```
+
+This generates two files:
+- `scanned_map.pgm` — the occupancy grid image
+- `scanned_map.yaml` — map metadata
+
+---
+
+##  Phase 2 — Autonomous Navigation
+
+With the map saved, launch the full navigation stack:
+
+```bash
+# Terminal 1
+ros2 launch flatland_quick_start_ros2 flatland_rviz.launch.xml
+
+# Terminal 2
+ros2 launch nav2_bringup navigation_launch.py
+
+# Terminal 3
+ros2 run nav2_util lifecycle_bringup map_server
+```
+
+Then open the Nav2 RViz view:
+
+```bash
+ros2 run rviz2 rviz2 \
+  -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz
+```
+
+###  Set a Navigation Goal
+
+In RViz, use the **"2D Nav Goal"** tool to click a destination on the map.
+
+The robot will automatically:
+- plan an optimal path
+- avoid obstacles
+- drive to the target
+
+---
+
+##  How It Works
+
+```
+LiDAR data → SLAM → Occupancy Map → Nav2 Localization → Path Planning → Velocity Commands → Robot
+```
+
+1. **SLAM** — The robot uses LiDAR scans to build a real-time occupancy grid map
+2. **Localization** — Nav2 localizes the robot within the saved map using AMCL
+3. **Path Planning** — Nav2 computes a path using global + local planners
+4. **Control** — Velocity commands (`/cmd_vel`) are published to move the robot safely
+
+This reflects a standard robotics pipeline used in real-world autonomous systems.
+
+---
+
+##  Customization
+
+**Modify SLAM parameters:**
+```
+/opt/ros/humble/share/slam_toolbox/config/
+```
+
+**Create custom maze environments:**
+```
+flatland_quick_start_ros2/flatland_worlds/
+```
+
+**Adjust robot controller behavior:**
+```
+flatland_quick_start_ros2/scripts/custom_robot_controller.py
+```
+
+---
+
+## 🛠️ Troubleshooting
+
+**Commands not found / package not found**
+```bash
+source install/setup.bash
+```
+
+**Robot is not moving**
+- Confirm the controller node is running in Terminal 4
+- Check that the `/cmd_vel` topic is being published:
+  ```bash
+  ros2 topic echo /cmd_vel
   ```
 
-2. Wait for the robot to create the map. Then, in a new command line (opened in the ROS workspace), type:
+**Nav2 lifecycle errors**
+- Make sure the map server is active before setting a goal
+- Verify TF frames are publishing correctly:
+  ```bash
+  ros2 run tf2_tools view_frames
   ```
-  ros2 run nav2_map_server map_saver_cli -f src/flatland_quick_start_ros2/flatland_worlds/maze/scanned_map
-  ```
-3. If successful, you should see `scanned_map.pgm` and `scanned_map.yaml` in `src/flatland_quick_start_ros2/flatland_worlds/maze`.
-4. Close all terminals with Ctrl+C.
+- Required frames: `base_link`, `odom`, `map`
 
-## Navigation
+---
 
-1. Now that the map is known, you can make the robot move to any part of the maze.
-- First terminal: Build and start the robot.
-  ```
-  colcon build
-  ros2 launch flatland_quick_start_ros2 flatland_rviz.launch.xml
-  ```
-- Second terminal: Start Nav2.
-  ```
-  ros2 launch nav2_bringup navigation_launch.py
-  ```
-- Third terminal: Load the map.
-  ```
-  ros2 run nav2_util lifecycle_bringup map_server
-  ```
-- Fourth terminal: Run the second instance of Rviz.
-  ```
-  ros2 run rviz2 rviz2 -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz
-  ```
-- In this instance of Rviz, you can use the goal position to see the robot moving.
+##  Learning Outcomes
 
-## Conclusion
+By working through this project you will understand:
 
-Congratulations! You've successfully set up and navigated a Flatland robot using ROS2 Humble, SLAM Toolbox, and Nav2. This tutorial guided you through the installation of necessary components, configuration of the environment, mapping a maze using SLAM, and finally navigating the robot within that space.
+- ROS 2 node & topic architecture
+- The difference between SLAM and localization
+- How Nav2 global & local planners work together
+- The full simulation-to-navigation pipeline
 
-### Next Steps
-- Experiment with different parameters in the SLAM Toolbox and Nav2 to see how they affect the robot's navigation and mapping capabilities.
-- Try designing your own mazes and see how the robot navigates through them.
-- Explore additional ROS2 packages and tools to further enhance your robot's capabilities.
+---
 
-### Feedback
-Your feedback is invaluable in improving this tutorial. If you have suggestions, questions, or comments, please feel free to reach out or contribute to the repository.
 
-Thank you for following this tutorial, and happy robot programming!
+##  Contributing
 
+Contributions are welcome! Feel free to:
+- Open an issue to report bugs or suggest features
+- Submit a pull request with improvements
+
+---
+
+##  Acknowledgments
+
+- [ROS 2 Community](https://docs.ros.org/en/humble/)
+- [Nav2 Developers](https://nav2.org/)
+- [SLAM Toolbox](https://github.com/SteveMacenski/slam_toolbox)
+- [Flatland Simulator](https://flatland-simulator.readthedocs.io/)
+
+---
+##  Developers
+
+|Name | Username | GitHub |
+|---|----------|--------|
+| Tomas Novotny | **TomasN123** | [@TomasN123](https://github.com/TomasN123) |
+| Juraj Zilka | **jurajzilka** | [@jurajzilka](https://github.com/jurajzilka) |
